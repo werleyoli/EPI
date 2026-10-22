@@ -1,0 +1,25 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+.venv/
+env/
+venv/
+
+# Compilação, Arquivos Binários e Empacotamento
+build/
+dist/
+*.rar
+*.zip
+*.7z
+*.tar.gz
+
+# Exportações geradas localmente pelo sistema
+exports/
+*.pdf
+backups/
+
+# Logs e IDEs
+*.log
+.vscode/
+.idea/
