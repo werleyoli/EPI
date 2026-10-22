@@ -293,7 +293,7 @@ class EmployeeService:
         query = """
             SELECT m.id, m.tipo, m.quantidade, m.data_hora, m.responsavel_entrega,
                    m.motivo, m.observacao, m.assinatura_path, m.foto_path,
-                   m.tamanho as mov_tamanho, m.estado_conservacao as mov_estado,
+                   m.tamanho as mov_tamanho, COALESCE(m.estado_conservacao, 'NOVO') as mov_estado,
                    m.custo_unitario, m.custo_total,
                    e.id as epi_id, e.codigo as epi_codigo, e.nome as epi_nome, e.ca as epi_ca,
                    e.fabricante as epi_fabricante, e.tamanho as epi_tamanho_catalogo, e.unidade as epi_unidade,

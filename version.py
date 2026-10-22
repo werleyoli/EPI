@@ -3,9 +3,9 @@ Definição centralizada da versão e informações de release do EPI Master Pro
 """
 
 APP_NAME = "EPI Master Pro"
-VERSION = "3.6.2"
+VERSION = "3.6.3"
 BUILD_DATE = "22/10/2026"
-RELEASE_TAG = "v3.6.2 - Ordenação Cronológica de Saídas na Ficha (Cima para Baixo), Preço Duplo e Validade Dinâmica"
+RELEASE_TAG = "v3.6.3 - Identificação Visual de Produto Novo e Usado na Ficha e PDF (NR-6)"
 
 def get_version_string():
     """Retorna texto de versão para a barra de status / rodapé."""

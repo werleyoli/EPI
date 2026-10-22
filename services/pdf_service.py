@@ -311,10 +311,27 @@ class PDFService:
                     val_disp = "-"
                 val_p = Paragraph(val_disp, cell_center)
 
+                est_raw = str(item.get("mov_estado") or item.get("estado_conservacao") or "NOVO").upper()
+                if any(k in est_raw for k in ["USADO", "REUTIL", "BOM", "HIGIEN"]):
+                    cond_tag = "USADO"
+                    cond_color = "#B45309"
+                elif any(k in est_raw for k in ["RUIM", "MANUT"]):
+                    cond_tag = "MANUTENÇÃO"
+                    cond_color = "#DC2626"
+                elif any(k in est_raw for k in ["DESC", "SUCATA"]):
+                    cond_tag = "DESCARTE"
+                    cond_color = "#991B1B"
+                else:
+                    cond_tag = "NOVO"
+                    cond_color = "#047857"
+
+                cond_badge = f"<font size=6.5 color='{cond_color}'><b>[{cond_tag}]</b></font>"
+                epi_desc = f"<b>{item.get('epi_nome', '')}</b> ({item.get('epi_codigo','')})<br/>{cond_badge}"
+
                 table_rows.append([
                     Paragraph(dt_fmt, cell_center),
                     tipo_p,
-                    Paragraph(f"<b>{item.get('epi_nome', '')}</b> ({item.get('epi_codigo','')})", cell_style),
+                    Paragraph(epi_desc, cell_style),
                     Paragraph(str(item.get("epi_ca", "")), cell_center),
                     val_p,
                     Paragraph(fab_tam, cell_style),

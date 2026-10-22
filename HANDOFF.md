@@ -1,6 +1,6 @@
 # 📋 HANDOFF - EPI MASTER PRO
 **Sistema Profissional de Gestão de EPIs, Fichas NR-6 e Controle de Almoxarifado**  
-**Versão Atual:** `3.6.2` | **Data:** `22/10/2026` | **Repositório:** [https://github.com/werleyoli/EPI.git](https://github.com/werleyoli/EPI.git)
+**Versão Atual:** `3.6.3` | **Data:** `22/10/2026` | **Repositório:** [https://github.com/werleyoli/EPI.git](https://github.com/werleyoli/EPI.git)
 
 ---
 
@@ -16,7 +16,7 @@ O **EPI Master Pro** é uma aplicação desktop desenvolvida em Python para gere
 ```
 EPI/
 ├── main.py                     # Ponto de entrada da aplicação e inicialização do CustomTkinter
-├── version.py                  # Controle centralizado de versão (v3.6.2) e release
+├── version.py                  # Controle centralizado de versão (v3.6.3) e release
 ├── database.py                 # Conexão SQLite, DDL das tabelas e migrações dinâmicas
 ├── seed_data.py                # Dados iniciais para inicialização rápida do sistema
 ├── build.py                    # Script automatizado de compilação com PyInstaller
@@ -63,7 +63,13 @@ EPI/
 
 ## 3. ✨ Histórico de Melhorias Implementadas
 
-### 🎯 Versão 3.6.2 (Atual)
+### 🎯 Versão 3.6.3 (Atual)
+1. **Identificação de Produto Novo ou Usado na Ficha de EPI (Tela e PDF):**
+   - Na impressão PDF (NR-6), a condição do equipamento entregue é inserida de forma elegante diretamente abaixo do nome do produto (`<br/><font size=6.5 color='...'><b>[NOVO]</b></font>` ou `[USADO]`), mantendo o layout limpo sem necessidade de criar colunas extras que espremam os dados.
+   - Na tabela de Histórico em tela (`EmployeeSheetView`), o nome do equipamento recebe a identificação clara `[NOVO]` ou `[USADO]`.
+   - Compatibilidade automática com todo o histórico retroativo e novas saídas cadastradas.
+
+### 🎯 Versão 3.6.2
 1. **Ordenação Cronológica das Saídas na Ficha (De Cima para Baixo):**
    - Ajustada a consulta SQL (`services/employee_service.py`) de `ORDER BY m.data_hora DESC` para `ORDER BY m.data_hora ASC, m.id ASC`.
    - No relatório em PDF (`services/pdf_service.py`), garantida a ordenação cronológica estrita das entregas: a primeira entrega do histórico aparece na linha superior e as entregas posteriores descem sequencialmente de cima para baixo, respeitando o preenchimento de formulários físicos de segurança do trabalho.

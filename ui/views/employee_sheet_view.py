@@ -397,13 +397,27 @@ class EmployeeSheetView(ctk.CTkFrame):
             else:
                 val_str = "Indeterminada"
 
+            est_raw = str(item.get("mov_estado") or item.get("estado_conservacao") or "NOVO").upper()
+            if any(k in est_raw for k in ["USADO", "REUTIL", "BOM", "HIGIEN"]):
+                cond_tag = "USADO"
+            elif any(k in est_raw for k in ["RUIM", "MANUT"]):
+                cond_tag = "MANUTENÇÃO"
+            elif any(k in est_raw for k in ["DESC", "SUCATA"]):
+                cond_tag = "DESCARTE"
+            elif is_nao_dev:
+                cond_tag = "RETIDO"
+            else:
+                cond_tag = "NOVO"
+
+            epi_nome_display = f"{item['epi_nome']}  [{cond_tag}]"
+
             self.table.insert_row(
                 item["id"],
                 [
                     dt,
                     tipo_display,
                     item["epi_codigo"],
-                    item["epi_nome"],
+                    epi_nome_display,
                     item["epi_ca"],
                     val_str,
                     fab_tam,
