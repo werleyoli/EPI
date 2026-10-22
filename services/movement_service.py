@@ -192,7 +192,16 @@ class MovementService:
         """Retorna os EPIs com maior volume de saídas para alimentação dos gráficos."""
         with get_connection() as conn:
             rows = conn.execute("""
-                SELECT e.nome, SUM(m.quantidade) as total_qtd, SUM(m.custo_total) as total_valor
+                SELECT e.nome, SUM(m.quantidade) as total_qtd, 
+                       SUM(CASE 
+                           WHEN (m.custo_total IS NOT NULL AND m.custo_total > 0.0) THEN m.custo_total
+                           WHEN (m.custo_unitario IS NOT NULL AND m.custo_unitario > 0.0) THEN m.quantidade * m.custo_unitario
+                           WHEN UPPER(COALESCE(m.estado_conservacao, '')) LIKE '%USADO%' 
+                             OR UPPER(COALESCE(m.estado_conservacao, '')) LIKE '%REUTIL%' 
+                             OR UPPER(COALESCE(m.estado_conservacao, '')) LIKE '%BOM%' 
+                           THEN m.quantidade * COALESCE(NULLIF(e.preco_usado, 0.0), e.preco_unitario * 0.5, 0.0)
+                           ELSE m.quantidade * COALESCE(e.preco_unitario, 0.0)
+                       END) as total_valor
                 FROM movimentacoes m
                 JOIN epis e ON m.epi_id = e.id
                 WHERE m.tipo = 'SAIDA'
@@ -214,8 +223,19 @@ class MovementService:
         """Retorna gastos acumulados por departamento para os gráficos."""
         with get_connection() as conn:
             rows = conn.execute("""
-                SELECT f.departamento, SUM(m.custo_total) as total_custo, SUM(m.quantidade) as total_qtd
+                SELECT f.departamento, 
+                       SUM(CASE 
+                           WHEN (m.custo_total IS NOT NULL AND m.custo_total > 0.0) THEN m.custo_total
+                           WHEN (m.custo_unitario IS NOT NULL AND m.custo_unitario > 0.0) THEN m.quantidade * m.custo_unitario
+                           WHEN UPPER(COALESCE(m.estado_conservacao, '')) LIKE '%USADO%' 
+                             OR UPPER(COALESCE(m.estado_conservacao, '')) LIKE '%REUTIL%' 
+                             OR UPPER(COALESCE(m.estado_conservacao, '')) LIKE '%BOM%' 
+                           THEN m.quantidade * COALESCE(NULLIF(e.preco_usado, 0.0), e.preco_unitario * 0.5, 0.0)
+                           ELSE m.quantidade * COALESCE(e.preco_unitario, 0.0)
+                       END) as total_custo, 
+                       SUM(m.quantidade) as total_qtd
                 FROM movimentacoes m
+                JOIN epis e ON m.epi_id = e.id
                 JOIN funcionarios f ON m.funcionario_id = f.id
                 WHERE m.tipo = 'SAIDA'
                 GROUP BY f.departamento
@@ -388,7 +408,24 @@ class MovementService:
     def get_movement(movement_id):
         """Retorna os dados detalhados de um lançamento de movimentação."""
         query = """
-            SELECT m.id, m.tipo, m.quantidade, m.custo_unitario, m.custo_total,
+            SELECT m.id, m.tipo, m.quantidade,
+                   CASE 
+                       WHEN (m.custo_unitario IS NOT NULL AND m.custo_unitario > 0.0) THEN m.custo_unitario
+                       WHEN UPPER(COALESCE(m.estado_conservacao, '')) LIKE '%USADO%' 
+                         OR UPPER(COALESCE(m.estado_conservacao, '')) LIKE '%REUTIL%' 
+                         OR UPPER(COALESCE(m.estado_conservacao, '')) LIKE '%BOM%' 
+                       THEN COALESCE(NULLIF(e.preco_usado, 0.0), e.preco_unitario * 0.5, 0.0)
+                       ELSE COALESCE(e.preco_unitario, 0.0)
+                   END as custo_unitario,
+                   CASE 
+                       WHEN (m.custo_total IS NOT NULL AND m.custo_total > 0.0) THEN m.custo_total
+                       WHEN (m.custo_unitario IS NOT NULL AND m.custo_unitario > 0.0) THEN m.quantidade * m.custo_unitario
+                       WHEN UPPER(COALESCE(m.estado_conservacao, '')) LIKE '%USADO%' 
+                         OR UPPER(COALESCE(m.estado_conservacao, '')) LIKE '%REUTIL%' 
+                         OR UPPER(COALESCE(m.estado_conservacao, '')) LIKE '%BOM%' 
+                       THEN m.quantidade * COALESCE(NULLIF(e.preco_usado, 0.0), e.preco_unitario * 0.5, 0.0)
+                       ELSE m.quantidade * COALESCE(e.preco_unitario, 0.0)
+                   END as custo_total,
                    m.data_hora, m.responsavel_entrega, m.motivo, m.observacao, m.assinatura_path, m.foto_path,
                    m.tamanho as mov_tamanho, m.estado_conservacao as mov_estado,
                    e.id as epi_id, e.codigo as epi_codigo, e.nome as epi_nome, e.ca as epi_ca, e.unidade as epi_unidade, e.preco_unitario as epi_preco,
@@ -611,7 +648,24 @@ class MovementService:
     def list_movements(tipo=None, epi_id=None, funcionario_id=None,
                        data_inicio=None, data_fim=None, search=None, limit=200):
         query = """
-            SELECT m.id, m.tipo, m.quantidade, m.custo_unitario, m.custo_total,
+            SELECT m.id, m.tipo, m.quantidade,
+                   CASE 
+                       WHEN (m.custo_unitario IS NOT NULL AND m.custo_unitario > 0.0) THEN m.custo_unitario
+                       WHEN UPPER(COALESCE(m.estado_conservacao, '')) LIKE '%USADO%' 
+                         OR UPPER(COALESCE(m.estado_conservacao, '')) LIKE '%REUTIL%' 
+                         OR UPPER(COALESCE(m.estado_conservacao, '')) LIKE '%BOM%' 
+                       THEN COALESCE(NULLIF(e.preco_usado, 0.0), e.preco_unitario * 0.5, 0.0)
+                       ELSE COALESCE(e.preco_unitario, 0.0)
+                   END as custo_unitario,
+                   CASE 
+                       WHEN (m.custo_total IS NOT NULL AND m.custo_total > 0.0) THEN m.custo_total
+                       WHEN (m.custo_unitario IS NOT NULL AND m.custo_unitario > 0.0) THEN m.quantidade * m.custo_unitario
+                       WHEN UPPER(COALESCE(m.estado_conservacao, '')) LIKE '%USADO%' 
+                         OR UPPER(COALESCE(m.estado_conservacao, '')) LIKE '%REUTIL%' 
+                         OR UPPER(COALESCE(m.estado_conservacao, '')) LIKE '%BOM%' 
+                       THEN m.quantidade * COALESCE(NULLIF(e.preco_usado, 0.0), e.preco_unitario * 0.5, 0.0)
+                       ELSE m.quantidade * COALESCE(e.preco_unitario, 0.0)
+                   END as custo_total,
                    m.data_hora, m.responsavel_entrega, m.motivo, m.observacao, m.assinatura_path, m.foto_path,
                    m.tamanho as mov_tamanho, m.estado_conservacao as mov_estado,
                    e.id as epi_id, e.codigo as epi_codigo, e.nome as epi_nome, e.ca as epi_ca, e.unidade as epi_unidade,
@@ -729,14 +783,38 @@ class MovementService:
 
         with get_connection() as conn:
             custo_total_mes = conn.execute("""
-                SELECT COALESCE(SUM(custo_total), 0.0)
-                FROM movimentacoes
-                WHERE tipo = 'SAIDA' AND strftime('%Y-%m', data_hora) = ?
+                SELECT COALESCE(SUM(
+                    CASE 
+                        WHEN (m.custo_total IS NOT NULL AND m.custo_total > 0.0) THEN m.custo_total
+                        WHEN (m.custo_unitario IS NOT NULL AND m.custo_unitario > 0.0) THEN m.quantidade * m.custo_unitario
+                        WHEN UPPER(COALESCE(m.estado_conservacao, '')) LIKE '%USADO%' 
+                          OR UPPER(COALESCE(m.estado_conservacao, '')) LIKE '%REUTIL%' 
+                          OR UPPER(COALESCE(m.estado_conservacao, '')) LIKE '%BOM%' 
+                        THEN m.quantidade * COALESCE(NULLIF(e.preco_usado, 0.0), e.preco_unitario * 0.5, 0.0)
+                        ELSE m.quantidade * COALESCE(e.preco_unitario, 0.0)
+                    END
+                ), 0.0)
+                FROM movimentacoes m
+                JOIN epis e ON m.epi_id = e.id
+                WHERE m.tipo = 'SAIDA' AND strftime('%Y-%m', m.data_hora) = ?
             """, (mes_ano,)).fetchone()[0]
 
             por_setor = conn.execute("""
-                SELECT f.departamento, COALESCE(SUM(m.custo_total), 0.0) as total_gasto, COUNT(m.id) as total_entregas
+                SELECT f.departamento, 
+                       COALESCE(SUM(
+                           CASE 
+                               WHEN (m.custo_total IS NOT NULL AND m.custo_total > 0.0) THEN m.custo_total
+                               WHEN (m.custo_unitario IS NOT NULL AND m.custo_unitario > 0.0) THEN m.quantidade * m.custo_unitario
+                               WHEN UPPER(COALESCE(m.estado_conservacao, '')) LIKE '%USADO%' 
+                                 OR UPPER(COALESCE(m.estado_conservacao, '')) LIKE '%REUTIL%' 
+                                 OR UPPER(COALESCE(m.estado_conservacao, '')) LIKE '%BOM%' 
+                               THEN m.quantidade * COALESCE(NULLIF(e.preco_usado, 0.0), e.preco_unitario * 0.5, 0.0)
+                               ELSE m.quantidade * COALESCE(e.preco_unitario, 0.0)
+                           END
+                       ), 0.0) as total_gasto, 
+                       COUNT(m.id) as total_entregas
                 FROM movimentacoes m
+                JOIN epis e ON m.epi_id = e.id
                 JOIN funcionarios f ON m.funcionario_id = f.id
                 WHERE m.tipo = 'SAIDA' AND strftime('%Y-%m', m.data_hora) = ?
                 GROUP BY f.departamento
@@ -767,13 +845,34 @@ class MovementService:
             """, (mes_atual,)).fetchone()[0]
 
             custo_saidas_mes = conn.execute("""
-                SELECT COALESCE(SUM(custo_total), 0.0)
-                FROM movimentacoes
-                WHERE tipo = 'SAIDA' AND strftime('%Y-%m', data_hora) = ?
+                SELECT COALESCE(SUM(
+                    CASE 
+                        WHEN (m.custo_total IS NOT NULL AND m.custo_total > 0.0) THEN m.custo_total
+                        WHEN (m.custo_unitario IS NOT NULL AND m.custo_unitario > 0.0) THEN m.quantidade * m.custo_unitario
+                        WHEN UPPER(COALESCE(m.estado_conservacao, '')) LIKE '%USADO%' 
+                          OR UPPER(COALESCE(m.estado_conservacao, '')) LIKE '%REUTIL%' 
+                          OR UPPER(COALESCE(m.estado_conservacao, '')) LIKE '%BOM%' 
+                        THEN m.quantidade * COALESCE(NULLIF(e.preco_usado, 0.0), e.preco_unitario * 0.5, 0.0)
+                        ELSE m.quantidade * COALESCE(e.preco_unitario, 0.0)
+                    END
+                ), 0.0)
+                FROM movimentacoes m
+                JOIN epis e ON m.epi_id = e.id
+                WHERE m.tipo = 'SAIDA' AND strftime('%Y-%m', m.data_hora) = ?
             """, (mes_atual,)).fetchone()[0]
 
             ultimas_saidas = conn.execute("""
-                SELECT m.id, m.tipo, m.quantidade, m.custo_total, m.data_hora, m.responsavel_entrega,
+                SELECT m.id, m.tipo, m.quantidade, 
+                       CASE 
+                           WHEN (m.custo_total IS NOT NULL AND m.custo_total > 0.0) THEN m.custo_total
+                           WHEN (m.custo_unitario IS NOT NULL AND m.custo_unitario > 0.0) THEN m.quantidade * m.custo_unitario
+                           WHEN UPPER(COALESCE(m.estado_conservacao, '')) LIKE '%USADO%' 
+                             OR UPPER(COALESCE(m.estado_conservacao, '')) LIKE '%REUTIL%' 
+                             OR UPPER(COALESCE(m.estado_conservacao, '')) LIKE '%BOM%' 
+                           THEN m.quantidade * COALESCE(NULLIF(e.preco_usado, 0.0), e.preco_unitario * 0.5, 0.0)
+                           ELSE m.quantidade * COALESCE(e.preco_unitario, 0.0)
+                       END as custo_total,
+                       m.data_hora, m.responsavel_entrega,
                        e.nome as epi_nome, e.ca as epi_ca,
                        f.nome as func_nome
                 FROM movimentacoes m

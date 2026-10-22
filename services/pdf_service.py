@@ -1078,11 +1078,35 @@ class PDFService:
 
             # 2. Busca de Não Devolvidos / Retidos (Extravio / Cobrança TRCT)
             query_naodev = """
-                SELECT m.id, m.epi_id, m.tamanho, m.quantidade, m.custo_unitario, m.custo_total,
+                SELECT m.id, m.epi_id, m.tamanho, m.quantidade,
+                       CASE 
+                           WHEN (m.custo_unitario IS NOT NULL AND m.custo_unitario > 0.0) THEN m.custo_unitario
+                           WHEN UPPER(COALESCE(m.estado_conservacao, '')) LIKE '%USADO%' 
+                             OR UPPER(COALESCE(m.estado_conservacao, '')) LIKE '%REUTIL%' 
+                             OR UPPER(COALESCE(m.estado_conservacao, '')) LIKE '%BOM%' 
+                           THEN COALESCE(NULLIF(e.preco_usado, 0.0), e.preco_unitario * 0.5, 0.0)
+                           ELSE COALESCE(e.preco_unitario, 0.0)
+                       END as custo_unitario,
+                       CASE 
+                           WHEN (m.custo_total IS NOT NULL AND m.custo_total > 0.0) THEN m.custo_total
+                           WHEN (m.custo_unitario IS NOT NULL AND m.custo_unitario > 0.0) THEN m.quantidade * m.custo_unitario
+                           WHEN UPPER(COALESCE(m.estado_conservacao, '')) LIKE '%USADO%' 
+                             OR UPPER(COALESCE(m.estado_conservacao, '')) LIKE '%REUTIL%' 
+                             OR UPPER(COALESCE(m.estado_conservacao, '')) LIKE '%BOM%' 
+                           THEN m.quantidade * COALESCE(NULLIF(e.preco_usado, 0.0), e.preco_unitario * 0.5, 0.0)
+                           ELSE m.quantidade * COALESCE(e.preco_unitario, 0.0)
+                       END as custo_total,
                        m.data_hora, m.responsavel_entrega, m.motivo, m.estado_conservacao, m.observacao,
                        e.codigo as epi_codigo, e.nome as epi_nome, e.ca as epi_ca,
                        e.fabricante as epi_fabricante, e.unidade as epi_unidade,
-                       COALESCE(m.custo_unitario, e.preco_unitario, 0.0) as preco_unitario,
+                       CASE 
+                           WHEN (m.custo_unitario IS NOT NULL AND m.custo_unitario > 0.0) THEN m.custo_unitario
+                           WHEN UPPER(COALESCE(m.estado_conservacao, '')) LIKE '%USADO%' 
+                             OR UPPER(COALESCE(m.estado_conservacao, '')) LIKE '%REUTIL%' 
+                             OR UPPER(COALESCE(m.estado_conservacao, '')) LIKE '%BOM%' 
+                           THEN COALESCE(NULLIF(e.preco_usado, 0.0), e.preco_unitario * 0.5, 0.0)
+                           ELSE COALESCE(e.preco_unitario, 0.0)
+                       END as preco_unitario,
                        f.nome as func_nome, f.matricula as func_matricula
                 FROM movimentacoes m
                 JOIN epis e ON m.epi_id = e.id

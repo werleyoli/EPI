@@ -123,11 +123,21 @@ class EmployeeSheetView(ctk.CTkFrame):
             s_inner,
             values=["Carregando..."],
             variable=self.emp_var,
-            width=380,
+            width=360,
             height=34,
             command=self._on_employee_selected
         )
-        self.emp_combo.pack(side="left", padx=(0, 15))
+        self.emp_combo.pack(side="left", padx=(0, 12))
+
+        self.chk_inativos_var = tk.BooleanVar(value=False)
+        self.chk_inativos = ctk.CTkCheckBox(
+            s_inner,
+            text="Exibir Inativos",
+            font=FONT_SMALL,
+            variable=self.chk_inativos_var,
+            command=self.load_employees
+        )
+        self.chk_inativos.pack(side="left", padx=(0, 15))
 
         self.btn_quick_exit = ctk.CTkButton(
             s_inner,
@@ -282,17 +292,41 @@ class EmployeeSheetView(ctk.CTkFrame):
         WhatsAppService.send_via_whatsapp(url)
 
     def load_employees(self):
-        self.employees = EmployeeService.list_employees()
+        show_inactives = getattr(self, "chk_inativos_var", None) and self.chk_inativos_var.get()
+        if show_inactives:
+            self.employees = EmployeeService.list_employees(status="all", show_inactive=True)
+        else:
+            self.employees = EmployeeService.list_employees(status="Ativo", show_inactive=False)
+
         if not self.employees:
-            self.emp_combo.configure(values=["Nenhum colaborador cadastrado"])
+            self.emp_combo.configure(values=["Nenhum colaborador encontrado"])
+            self.emp_var.set("Nenhum colaborador encontrado")
             return
 
-        self.emp_map = {f"{e['nome']} - {e['cargo']} ({e['matricula']})": e["id"] for e in self.employees}
+        self.emp_map = {}
+        for e in self.employees:
+            st_tag = ""
+            if e.get("status") and e.get("status") != "Ativo":
+                st_tag = f" [{e['status'].upper()}]"
+            label = f"{e['nome']} - {e['cargo']} ({e['matricula']}){st_tag}"
+            self.emp_map[label] = e["id"]
+
         keys = list(self.emp_map.keys())
         self.emp_combo.configure(values=keys)
-        if keys:
-            self.emp_var.set(keys[0])
-            self._load_sheet_for_employee(self.emp_map[keys[0]])
+
+        curr_id = self.current_employee["id"] if self.current_employee else None
+        target_key = None
+        if curr_id:
+            for k, vid in self.emp_map.items():
+                if vid == curr_id:
+                    target_key = k
+                    break
+        if not target_key and keys:
+            target_key = keys[0]
+
+        if target_key:
+            self.emp_var.set(target_key)
+            self._load_sheet_for_employee(self.emp_map[target_key])
 
     def _on_employee_selected(self, choice):
         emp_id = self.emp_map.get(choice)
@@ -300,6 +334,11 @@ class EmployeeSheetView(ctk.CTkFrame):
             self._load_sheet_for_employee(emp_id)
 
     def select_employee_by_id(self, emp_id):
+        emp = EmployeeService.get_employee(emp_id)
+        if emp and emp.get("status") != "Ativo" and hasattr(self, "chk_inativos_var") and not self.chk_inativos_var.get():
+            self.chk_inativos_var.set(True)
+            self.load_employees()
+
         for k, v in self.emp_map.items():
             if v == emp_id:
                 self.emp_var.set(k)

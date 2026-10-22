@@ -360,6 +360,36 @@ def init_db():
         except Exception:
             pass
 
+        # Migração: Atualiza custos históricos em movimentacoes a partir dos preços configurados no EPI
+        try:
+            cursor.execute("""
+                UPDATE movimentacoes
+                SET custo_unitario = (
+                    SELECT CASE 
+                        WHEN UPPER(COALESCE(movimentacoes.estado_conservacao, '')) LIKE '%USADO%' 
+                          OR UPPER(COALESCE(movimentacoes.estado_conservacao, '')) LIKE '%REUTIL%' 
+                          OR UPPER(COALESCE(movimentacoes.estado_conservacao, '')) LIKE '%BOM%' 
+                        THEN COALESCE(NULLIF(epis.preco_usado, 0.0), epis.preco_unitario * 0.5, 0.0)
+                        ELSE COALESCE(epis.preco_unitario, 0.0)
+                    END
+                    FROM epis WHERE epis.id = movimentacoes.epi_id
+                ),
+                custo_total = quantidade * (
+                    SELECT CASE 
+                        WHEN UPPER(COALESCE(movimentacoes.estado_conservacao, '')) LIKE '%USADO%' 
+                          OR UPPER(COALESCE(movimentacoes.estado_conservacao, '')) LIKE '%REUTIL%' 
+                          OR UPPER(COALESCE(movimentacoes.estado_conservacao, '')) LIKE '%BOM%' 
+                        THEN COALESCE(NULLIF(epis.preco_usado, 0.0), epis.preco_unitario * 0.5, 0.0)
+                        ELSE COALESCE(epis.preco_unitario, 0.0)
+                    END
+                    FROM epis WHERE epis.id = movimentacoes.epi_id
+                )
+                WHERE (custo_unitario IS NULL OR custo_unitario = 0.0 OR custo_total IS NULL OR custo_total = 0.0)
+                  AND EXISTS (SELECT 1 FROM epis WHERE epis.id = movimentacoes.epi_id AND epis.preco_unitario > 0);
+            """)
+        except Exception:
+            pass
+
         # Grupos padrões de EPI
         default_grupos = [
             ("BOTA DE PVC", "Botas impermeáveis de policloreto de vinila (PVC) para umidade e químicos"),

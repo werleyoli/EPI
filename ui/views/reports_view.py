@@ -289,13 +289,22 @@ class ReportsView(ctk.CTkFrame):
         self.kpi_total_saidas.configure(text=f"{total_saidas_qtd} unid.")
         self.kpi_custo_total.configure(text=f"R$ {total_saidas_custo:,.2f}".replace(",", "X").replace(".", ",").replace("X", "."))
 
+        def _fmt_lbl(d):
+            if not d:
+                return ""
+            d_norm = MovementService.normalize_date_iso(d)
+            if d_norm:
+                p = d_norm.split("-")
+                return f"{p[2]}/{p[1]}/{p[0]}"
+            return str(d)
+
         per_str = "Todo o Histórico"
         if dt_ini and dt_fim:
-            per_str = f"{dt_ini[8:10]}/{dt_ini[5:7]} a {dt_fim[8:10]}/{dt_fim[5:7]}/{dt_fim[:4]}"
+            per_str = f"{_fmt_lbl(dt_ini)} a {_fmt_lbl(dt_fim)}"
         elif dt_ini:
-            per_str = f"A partir de {dt_ini}"
+            per_str = f"A partir de {_fmt_lbl(dt_ini)}"
         elif dt_fim:
-            per_str = f"Até {dt_fim}"
+            per_str = f"Até {_fmt_lbl(dt_fim)}"
         self.kpi_periodo.configure(text=per_str)
 
     def _export_excel(self):

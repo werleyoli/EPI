@@ -1,6 +1,6 @@
 # 📋 HANDOFF - EPI MASTER PRO
 **Sistema Profissional de Gestão de EPIs, Fichas NR-6 e Controle de Almoxarifado**  
-**Versão Atual:** `3.6.3` | **Data:** `22/10/2026` | **Repositório:** [https://github.com/werleyoli/EPI.git](https://github.com/werleyoli/EPI.git)
+**Versão Atual:** `3.6.4` | **Data:** `22/10/2026` | **Repositório:** [https://github.com/werleyoli/EPI.git](https://github.com/werleyoli/EPI.git)
 
 ---
 
@@ -16,7 +16,7 @@ O **EPI Master Pro** é uma aplicação desktop desenvolvida em Python para gere
 ```
 EPI/
 ├── main.py                     # Ponto de entrada da aplicação e inicialização do CustomTkinter
-├── version.py                  # Controle centralizado de versão (v3.6.3) e release
+├── version.py                  # Controle centralizado de versão (v3.6.4) e release
 ├── database.py                 # Conexão SQLite, DDL das tabelas e migrações dinâmicas
 ├── seed_data.py                # Dados iniciais para inicialização rápida do sistema
 ├── build.py                    # Script automatizado de compilação com PyInstaller
@@ -63,7 +63,21 @@ EPI/
 
 ## 3. ✨ Histórico de Melhorias Implementadas
 
-### 🎯 Versão 3.6.3 (Atual)
+### 🎯 Versão 3.6.4 (Atual)
+1. **Sincronização Dinâmica e Retroativa de Custos no Dashboard e Relatórios:**
+   - Adicionada rotina de migração em `database.py` que calcula e atualiza retroativamente `custo_unitario` e `custo_total` para movimentações históricas que estavam com valor zerado.
+   - Atualizado o serviço `EPIService.update_epi` para propagar automaticamente novos preços para movimentações passadas do EPI em questão que ainda não possuíam valor.
+   - Refatoradas as consultas em `MovementService` (`get_recent_stats`, `get_top_epis_consumed`, `get_department_costs`, `get_financial_summary`, `get_movement`, `list_movements`) utilizando lógica `CASE / COALESCE(NULLIF(...))` para que o Dashboard e os extratos reflitam os custos reais mesmo em transações cadastradas antes da atribuição de preço.
+2. **Cálculo de Preço Unitário e Prejuízo no Relatório de Itens Não Devolvidos:**
+   - No relatório em PDF de Manutenção, Descarte e Retidos (`PDFService.generate_maintenance_discard_pdf`), a tabela `[3] ITENS NÃO DEVOLVIDOS / RETIDOS` agora puxa o valor unitário cadastrado do EPI caso a saída estivesse com custo zerado, garantindo o preenchimento exato da coluna `Custo Unit.` e do cálculo de `Prejuízo R$` para cobrança em TRCT ou notificação.
+3. **Correção da Exibição do Período no Extrato de Movimentações:**
+   - Corrigida a formatação de período em `reports_view.py`, tratando datas no formato brasileiro `DD/MM/AAAA` e eliminando o erro de quebra de string (`26//2 a 26//2...`).
+4. **Filtro de Colaboradores Inativos na Ficha NR-6:**
+   - Na tela da Ficha Individual de EPI (`EmployeeSheetView`), o menu de colaboradores passa a carregar **apenas colaboradores ativos por padrão**.
+   - Adicionado o checkbox interativo `[ ] Exibir Inativos` ao lado do seletor: ao marcar, os colaboradores inativos/desligados passam a ser listados com a tag visual `[INATIVO]` no nome.
+   - Ao selecionar um colaborador desligado através de atalhos em outras telas, o sistema ativa automaticamente a opção de inativos para permitir a auditoria da ficha.
+
+### 🎯 Versão 3.6.3
 1. **Identificação de Produto Novo ou Usado na Ficha de EPI (Tela e PDF):**
    - Na impressão PDF (NR-6), a condição do equipamento entregue é inserida de forma elegante diretamente abaixo do nome do produto (`<br/><font size=6.5 color='...'><b>[NOVO]</b></font>` ou `[USADO]`), mantendo o layout limpo sem necessidade de criar colunas extras que espremam os dados.
    - Na tabela de Histórico em tela (`EmployeeSheetView`), o nome do equipamento recebe a identificação clara `[NOVO]` ou `[USADO]`.

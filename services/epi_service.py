@@ -201,6 +201,28 @@ class EPIService:
             ))
             conn.commit()
 
+        if preco > 0:
+            with get_connection() as conn:
+                conn.execute("""
+                    UPDATE movimentacoes
+                    SET custo_unitario = CASE 
+                        WHEN UPPER(COALESCE(estado_conservacao, '')) LIKE '%USADO%' 
+                          OR UPPER(COALESCE(estado_conservacao, '')) LIKE '%REUTIL%' 
+                          OR UPPER(COALESCE(estado_conservacao, '')) LIKE '%BOM%' 
+                        THEN ?
+                        ELSE ?
+                    END,
+                    custo_total = quantidade * CASE 
+                        WHEN UPPER(COALESCE(estado_conservacao, '')) LIKE '%USADO%' 
+                          OR UPPER(COALESCE(estado_conservacao, '')) LIKE '%REUTIL%' 
+                          OR UPPER(COALESCE(estado_conservacao, '')) LIKE '%BOM%' 
+                        THEN ?
+                        ELSE ?
+                    END
+                    WHERE epi_id = ? AND (custo_unitario IS NULL OR custo_unitario = 0.0 OR custo_total IS NULL OR custo_total = 0.0);
+                """, (preco_usado, preco, preco_usado, preco, epi_id))
+                conn.commit()
+
         # Atualiza a grade se fornecida
         if "grades" in data and data["grades"]:
             EPIService.save_epi_grades(epi_id, data["grades"])
